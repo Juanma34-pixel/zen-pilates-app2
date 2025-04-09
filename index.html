@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zen Pilates</title>
+  <!-- Para “Agregar a pantalla de inicio” en iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Zen Pilates">
+  <!-- Icono (puedes cambiar la URL por tu propio icono) -->
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/your-username/zen-pilates-app/main/icon-192.png">
+
+  <style>
+    body { margin:0; font-family:Arial,sans-serif; background:#f4f4f4; }
+    header { background:#8A2BE2; color:#fff; padding:1rem; display:flex; justify-content:space-between; align-items:center; }
+    h1 { margin:0; }
+    .screen { padding:2rem; text-align:center; }
+    .hidden { display:none; }
+    button, select, input { font-size:1rem; }
+    button { background:#8A2BE2; color:#fff; border:none; padding:.5rem 1rem; margin:1rem; border-radius:.5rem; cursor:pointer; }
+    #class-form { background:#fff; border:1px solid #D8BFD8; padding:1rem; border-radius:.5rem; max-width:400px; margin:1rem auto; text-align:left; }
+    fieldset { border:1px solid #D8BFD8; padding:1rem; }
+    legend { font-weight:bold; }
+    label { display:block; margin:.5rem 0; }
+    ul { list-style:none; padding:0; }
+    li { background:#fff; margin:.5rem 0; padding:1rem; border:1px solid #D8BFD8; border-radius:.5rem; text-align:left; }
+  </style>
+</head>
+<body>
+  <div id="login-screen" class="screen">
+    <h1>Zen Pilates</h1>
+    <p>Selecciona tu usuario:</p>
+    <select id="user-select">
+      <option value="">--Selecciona--</option>
+      <option value="barbi">Barbi (Dueña)</option>
+      <option value="luna">Luna (Profesora)</option>
+      <option value="iara">Iara (Profesora)</option>
+      <option value="mica">Mica (Profesora)</option>
+    </select>
+    <button id="login-btn">Entrar</button>
+  </div>
+
+  <div id="app-screen" class="screen hidden">
+    <header>
+      <h1>Zen Pilates</h1>
+      <button id="logout-btn">Cerrar sesión</button>
+    </header>
+    <main>
+      <div id="welcome"></div>
+      <button id="new-class-btn">Crear nueva clase</button>
+      <div id="class-form" class="hidden">
+        <h2>Crear Clase</h2>
+        <label>Título: <input type="text" id="class-title"></label>
+        <fieldset id="exercises-fieldset">
+          <legend>Selecciona entre 5 y 7 ejercicios:</legend>
+          <label><input type="checkbox" value="reformer"> Reformer</label>
+          <label><input type="checkbox" value="trapeze_table"> Trapecio con cama</label>
+          <label><input type="checkbox" value="chair"> Chair</label>
+          <label><input type="checkbox" value="barrel"> Barrel</label>
+          <label><input type="checkbox" value="mat"> Colchoneta (piso)</label>
+          <label><input type="checkbox" value="wall_bar"> Barra de pared</label>
+        </fieldset>
+        <button id="save-class-btn">Guardar Clase</button>
+      </div>
+      <h2>Tus Clases</h2>
+      <ul id="class-list"></ul>
+    </main>
+  </div>
+
+  <script>
+    const users = { barbi:'Barbi', luna:'Luna', iara:'Iara', mica:'Mica' };
+    let currentUser = null;
+    const loginScreen = document.getElementById('login-screen');
+    const appScreen = document.getElementById('app-screen');
+    const userSelect = document.getElementById('user-select');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const welcomeDiv = document.getElementById('welcome');
+    const newClassBtn = document.getElementById('new-class-btn');
+    const classForm = document.getElementById('class-form');
+    const classTitleInput = document.getElementById('class-title');
+    const exercisesFieldset = document.getElementById('exercises-fieldset');
+    const saveClassBtn = document.getElementById('save-class-btn');
+    const classList = document.getElementById('class-list');
+
+    function showScreen(screen) {
+      loginScreen.classList.add('hidden');
+      appScreen.classList.add('hidden');
+      screen.classList.remove('hidden');
+    }
+
+    function loadClasses() {
+      return (JSON.parse(localStorage.getItem('classes')||'[]'))
+             .filter(c=>c.user===currentUser);
+    }
+
+    function renderClasses() {
+      classList.innerHTML = '';
+      loadClasses().forEach(c=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${c.title}</strong><br>Ejercicios: ${c.exercises.join(', ')}`;
+        classList.appendChild(li);
+      });
+    }
+
+    loginBtn.onclick = ()=>{
+      const val = userSelect.value;
+      if(users[val]){
+        currentUser=val;
+        welcomeDiv.textContent = `Bienvenida, ${users[val]}`;
+        renderClasses();
+        showScreen(appScreen);
+      } else alert('Selecciona un usuario.');
+    };
+    logoutBtn.onclick = ()=>{
+      currentUser=null;
+      userSelect.value='';
+      showScreen(loginScreen);
+    };
+    newClassBtn.onclick = ()=> classForm.classList.toggle('hidden');
+    saveClassBtn.onclick = ()=>{
+      const title=classTitleInput.value.trim();
+      const checks=Array.from(exercisesFieldset.querySelectorAll('input:checked')).map(i=>i.value);
+      if(!title) return alert('Pon un título');
+      if(checks.length<5||checks.length>7) return alert('Selecciona entre 5 y 7 ejercicios');
+      const all=JSON.parse(localStorage.getItem('classes')||'[]');
+      all.push({user:currentUser,title,exercises:checks});
+      localStorage.setItem('classes',JSON.stringify(all));
+      classTitleInput.value='';
+      exercisesFieldset.querySelectorAll('input').forEach(i=>i.checked=false);
+      classForm.classList.add('hidden');
+      renderClasses();
+    };
+
+    document.addEventListener('DOMContentLoaded',()=>showScreen(loginScreen));
+  </script>
+</body>
+</html>
